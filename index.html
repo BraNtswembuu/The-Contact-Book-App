@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contact Book (using API's)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Contact Book</h1>
+            <p>Manage your contacts with ease</p>
+        </div>
+
+        <div class="content">
+            <!---- API Setup page ---->
+            <div id="setupPage" class="page active">
+                <div class="api-setup">
+                    <h2>API Setup Required</h2>
+                    <p>Before you use the contact book, please enter your API key below. If you don't have one you can use: <strong>appacademy@itvarsity.org</strong></p>
+                    
+                    <div class="form-group">
+                        <label for="apiKeyInput">Enter your API Key (Email Address)</label>
+                        <input type="email" id="apiKeyInput" placeholder="your-email address here" required>
+                    </div>
+
+                    <button class="btn" onclick="setupApiKey()">Start Using Contact Book</button>
+                </div>
+            </div>
+
+            <!---- Main Contact Book page ---->
+            <div id="contactPage" class="page">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px">
+                    <h2>Your Contacts</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="refreshContacts()">Refresh Contacts</button>
+                        <button class="btn btn-success" onclick="showAddContactPage()">Add Contacts</button>
+                    </div>
+                </div>
+                <div id="contactsList"> 
+                    <div class="loading">Loading contacts...</div>
+                </div>
+            </div>
+
+            <!--- Add Contact Page ---->
+            <div id="addContactsPage" class="page">
+                <button class="btn btn-secondary back-btn" onclick="showContacts()">Back to Contacts</button>
+                
+                    <h2>Add New Contact</h2>
+                <form id="addContactForm" onsubmit="addContact(event)">
+                    <div class="form-group">
+                        <label for="FirstName">First Name</label>
+                        <input type="text" id="FirstName" name="FirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="LastName">Last Name</label>
+                        <input type="text" id="LastName" name="LastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="MobileNumber">Mobile Number</label>
+                        <input type="tel" id="MobileNumber" name="MobileNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="EmailAddress">Email Address</label>
+                        <input type="email" id="EmailAddress" name="EmailAddress" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="Avatar">Profile Picture</label>
+                        <input type="file" id="Avatar" name="Avatar" accept="image/*">
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Save Contact</button>
+                    <button type="button" class="btn btn-secondary" onclick="showContacts()">Cancel</button>
+                </form>
+            </div>
+            
+            <!--- Edit Contact Page ---->
+            <div id="editContactPage" class="page">
+                <button class="btn btn-secondary back-btn" onclick="showContacts()">Back to Contacts</button>
+                
+                <h2>Edit Contact</h2>
+                <form id="editContactForm" onsubmit="updateContact(event)">
+                    <input type="hidden" id="editContactId">
+
+                    <div class="form-group">
+                        <label for="editFirstName">First Name</label>
+                        <input type="text" id="editFirstName" name="editFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLastName">Last Name</label>
+                        <input type="text" id="editLastName" name="editLastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMobileNumber">Mobile Number</label>
+                        <input type="tel" id="editMobileNumber" name="editMobileNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmailAddress">Email Address</label>
+                        <input type="email" id="editEmailAddress" name="editEmailAddress" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAvatar">Profile Picture</label>
+                        <input type="file" id="editAvatar" name="editAvatar" accept="image/*">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Update Contact</button>
+                    <button type="button" class="btn btn-secondary" onclick="showContacts()">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
