@@ -22,10 +22,38 @@ function setApiKey() {
         alert('Please enter an API key!');
         return;
     }
+    
+    // Validate email format for API key
+    if (!validateEmail(inputApiKey)) {
+        alert('Please enter a valid email address as your API key.');
+        return;
+    }
+    
+    // Show loading state
+    const setupBtn = document.querySelector('#setupPage .btn');
+    const originalBtnText = setupBtn.textContent;
+    setupBtn.textContent = '⏳ Validating...';
+    setupBtn.disabled = true;
+    
+    // Add error message container if it doesn't exist
+    let errorMsgContainer = document.getElementById('apiKeyErrorMsg');
+    if (!errorMsgContainer) {
+        errorMsgContainer = document.createElement('div');
+        errorMsgContainer.id = 'apiKeyErrorMsg';
+        errorMsgContainer.className = 'error';
+        errorMsgContainer.style.display = 'none';
+        document.querySelector('#setupPage .form-group').after(errorMsgContainer);
+    }
+    
+    // Hide any previous error messages
+    errorMsgContainer.style.display = 'none';
 
     // Validate API key first
     fetch(rootPath + "controller/api-key/?apiKey=" + inputApiKey)
         .then(function (response) {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.text();
         })
         .then(function (data) {
@@ -35,11 +63,30 @@ function setApiKey() {
                 showContacts();
                 getContacts();
             } else {
-                alert("Invalid API key entered!");
+                errorMsgContainer.textContent = "Invalid API key entered! Please try again.";
+                errorMsgContainer.style.display = 'block';
             }
         })
         .catch(function (error) {
-            alert('Error validation your API Key. Please try again.');
+            console.error('API key validation error:', error);
+            
+            // If there's a network error, we'll still set the API key
+            // This is a fallback for when the validation endpoint is not working
+            if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+                console.log('Network error detected, proceeding with API key');
+                apiKey = inputApiKey;
+                localStorage.setItem("apiKey", apiKey);
+                showContacts();
+                getContacts();
+            } else {
+                errorMsgContainer.textContent = 'Error validating your API Key: ' + error.message;
+                errorMsgContainer.style.display = 'block';
+            }
+        })
+        .finally(function() {
+            // Reset button state
+            setupBtn.textContent = originalBtnText;
+            setupBtn.disabled = false;
         });
 }
 
@@ -73,15 +120,20 @@ function getContacts() {
     const contactsList = document.getElementById('contactsList');
     contactsList.innerHTML = '<div class="loading"> Loading contacts...</div>';
 
-    fetch(rootPath + "controller/get-contacts/")
+    // Add API key to the request
+    fetch(rootPath + "controller/get-contacts/?apiKey=" + apiKey)
         .then(function (response){
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.json();
         })
         .then(function (data){
             displayContacts(data);
         })
         .catch(function (error){
-            contactsList.innerHTML = '<div class="error">Something went wrong, please try again later.</div>'
+            console.error('Error fetching contacts:', error);
+            contactsList.innerHTML = '<div class="error">Something went wrong, please try again later.<br>' + error.message + '</div>';
         });
 }
 
@@ -128,16 +180,48 @@ function refreshContacts() {
 
 function addContact(event) {
     event.preventDefault();
+    
+    // Basic form validation
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const mobile = document.getElementById('mobile').value.trim();
+    const email = document.getElementById('email').value.trim();
+    
+    if (!firstName || !lastName || !mobile || !email) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    // Validate email format
+    if (!validateEmail(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    
+    // Validate mobile number (basic validation)
+    if (!validateMobile(mobile)) {
+        alert('Please enter a valid mobile number.');
+        return;
+    }
 
     const form = new FormData(document.querySelector('#addContactForm'));
     form.append('apiKey', apiKey);
+    
+    // Disable submit button and show loading state
+    const submitBtn = document.querySelector('#addContactForm button[type="submit"]');
+    const originalBtnText = submitBtn.textContent;
+    submitBtn.textContent = '⏳ Saving...';
+    submitBtn.disabled = true;
 
     fetch(rootPath + 'controller/insert-contact/', {
         method: 'POST',
-        headers: {'Accept': 'application/json, *.*'},
+        // Remove headers that can cause issues with FormData/file uploads
         body: form
     })
         .then(function (response){
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.text();
         })
         .then(function (data){
@@ -150,13 +234,26 @@ function addContact(event) {
             }
         })
         .catch(function (error){
-            alert('Something went wrong. Please try again.');
+            console.error('Error adding contact:', error);
+            alert('Something went wrong. Please try again. Error: ' + error.message);
+        })
+        .finally(function() {
+            // Reset button state
+            submitBtn.textContent = originalBtnText;
+            submitBtn.disabled = false;
         });
 }
 
 function loadContactForEdit(contactId) {
-    fetch(rootPath + 'controller/get-contacts/?id=' + contactId)
+    // Show loading indicator
+    document.getElementById('editAvatarImage').innerHTML = '<div class="loading">Loading contact details...</div>';
+    
+    // Add API key to the request
+    fetch(rootPath + 'controller/get-contacts/?id=' + contactId + '&apiKey=' + apiKey)
         .then(function (response){
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.json();
         })
         .then(function (data){
@@ -177,29 +274,65 @@ function loadContactForEdit(contactId) {
                 document.getElementById('editLastName').value = contact.lastname;
                 document.getElementById('editMobile').value = contact.mobile;
                 document.getElementById('editEmail').value = contact.email;
+            } else {
+                alert('No contact details found or contact may have been deleted.');
+                showContacts();
             }
         })
         .catch(function (error){
-            alert('Error loading contact details.');
+            console.error('Error loading contact details:', error);
+            alert('Error loading contact details: ' + error.message);
             showContacts();
         })
 }
 
 function updateContact(event){
     event.preventDefault();
+    
+    // Basic form validation
+    const firstName = document.getElementById('editFirstName').value.trim();
+    const lastName = document.getElementById('editLastName').value.trim();
+    const mobile = document.getElementById('editMobile').value.trim();
+    const email = document.getElementById('editEmail').value.trim();
+    
+    if (!firstName || !lastName || !mobile || !email) {
+        alert('Please fill in all required fields.');
+        return;
+    }
+    
+    // Validate email format
+    if (!validateEmail(email)) {
+        alert('Please enter a valid email address.');
+        return;
+    }
+    
+    // Validate mobile number (basic validation)
+    if (!validateMobile(mobile)) {
+        alert('Please enter a valid mobile number.');
+        return;
+    }
 
     const form = new FormData(document.querySelector("#editContactForm"));
     const contactId = document.getElementById('editContactId').value;
 
     form.append('apiKey', apiKey);
     form.append('id', contactId);
+    
+    // Disable submit button and show loading state
+    const submitBtn = document.querySelector('#editContactForm button[type="submit"]');
+    const originalBtnText = submitBtn.textContent;
+    submitBtn.textContent = '⏳ Updating...';
+    submitBtn.disabled = true;
 
     fetch(rootPath + 'controller/edit-contact/', {
         method: 'POST',
-        headers: {'Accept': 'application/json, *.*'},
+        // Remove headers that can cause issues with FormData/file uploads
         body: form
     })
         .then(function (response){
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
             return response.text();
         })
         .then(function (data){
@@ -212,7 +345,13 @@ function updateContact(event){
             }
         })
         .catch(function (error){
-            alert('Something went wrong. Please try again.');
+            console.error('Error updating contact:', error);
+            alert('Something went wrong. Please try again. Error: ' + error.message);
+        })
+        .finally(function() {
+            // Reset button state
+            submitBtn.textContent = originalBtnText;
+            submitBtn.disabled = false;
         });
 }
 
@@ -220,8 +359,19 @@ function deleteContact(contactId) {
     var confirmDelete = confirm("Delete contact. Are you sure?");
 
     if (confirmDelete == true) {
-        fetch(rootPath + 'controller/delete-contact/?id=' + contactId)
+        // Show loading state in the contact card
+        const contactCard = document.querySelector(`.contact-card button[onclick="deleteContact('${contactId}')"]`).closest('.contact-card');
+        if (contactCard) {
+            contactCard.style.opacity = '0.5';
+            contactCard.style.pointerEvents = 'none';
+        }
+        
+        // Add API key to the request
+        fetch(rootPath + 'controller/delete-contact/?id=' + contactId + '&apiKey=' + apiKey)
             .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
                 return response.text();
             })
             .then(function (data){
@@ -230,15 +380,96 @@ function deleteContact(contactId) {
                     getContacts();
                 } else {
                     alert('Error deleting contact: ' + data);
+                    // Reset contact card if error
+                    if (contactCard) {
+                        contactCard.style.opacity = '1';
+                        contactCard.style.pointerEvents = 'auto';
+                    }
                 }
             })
             .catch(function (error){
-                alert('Something went wrong. Please try again.');
+                console.error('Error deleting contact:', error);
+                alert('Something went wrong. Please try again. Error: ' + error.message);
+                // Reset contact card if error
+                if (contactCard) {
+                    contactCard.style.opacity = '1';
+                    contactCard.style.pointerEvents = 'auto';
+                }
             });
+    }
+}
+
+// Search contacts functionality
+function searchContacts() {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    const contactCards = document.querySelectorAll('.contact-card');
+    
+    contactCards.forEach(card => {
+        const name = card.querySelector('.contact-name').textContent.toLowerCase();
+        const mobile = card.querySelector('.contact-details p:nth-child(1)').textContent.toLowerCase();
+        const email = card.querySelector('.contact-details p:nth-child(2)').textContent.toLowerCase();
+        
+        // Check if any of the contact details match the search query
+        if (name.includes(searchInput) || mobile.includes(searchInput) || email.includes(searchInput)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Show message if no results found
+    const visibleCards = document.querySelectorAll('.contact-card[style="display: block"]');
+    const noResultsMsg = document.getElementById('noResultsMsg');
+    
+    if (visibleCards.length === 0 && searchInput !== '') {
+        if (!noResultsMsg) {
+            const msg = document.createElement('div');
+            msg.id = 'noResultsMsg';
+            msg.className = 'loading';
+            msg.textContent = 'No contacts found matching your search.';
+            document.getElementById('contactsList').appendChild(msg);
+        }
+    } else if (noResultsMsg) {
+        noResultsMsg.remove();
+    }
+}
+
+// Helper function to validate email format
+function validateEmail(email) {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
+// Helper function to validate mobile number (basic validation)
+function validateMobile(mobile) {
+    // Remove spaces, dashes, and parentheses
+    const cleanedNumber = mobile.replace(/[\s\-()]/g, '');
+    // Check if it's a valid number (at least 10 digits)
+    return cleanedNumber.length >= 10 && /^\+?[0-9]+$/.test(cleanedNumber);
+}
+
+// Function to log out (reset API key)
+function logOut() {
+    const confirmLogout = confirm("Are you sure you want to log out? This will clear your API key.");
+    if (confirmLogout) {
+        localStorage.removeItem('apiKey');
+        apiKey = '';
+        alert("You have been logged out successfully.");
+        location.reload();
     }
 }
 
 window.onload = function() {
     checkApiKey();
+    
+    // Add logout button to contacts page
+    const contactsHeader = document.querySelector('#contactsPage div:first-child div');
+    if (contactsHeader) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'btn btn-danger';
+        logoutBtn.textContent = '🚪 Log Out';
+        logoutBtn.onclick = logOut;
+        contactsHeader.appendChild(logoutBtn);
+    }
 };
 

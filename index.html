@@ -19,12 +19,13 @@
                     <div class="api-setup">
                         <h3>🔑 API Setup Required</h3>
                         <p>Before you use the contact book, please enter your api
-                        key below. If you don't have one you can use:
-                            <strong>appacademy@itvarsity.org</strong></p>
+                        key below. You can use either:
+                            <strong>appacademy@itvarsity.org</strong> or 
+                            <strong>obakeng.boikanyo270@gmail.com</strong></p>
                     </div>
                     <div class="form-group">
                         <label for="apiKeyInput">Enter your API Key (Email Address)</label>
-                        <input type="email" id="apiKeyInput" placeholder="your-email@example.com">
+                        <input type="email" id="apiKeyInput" placeholder="obakeng.boikanyo270@gmail.com">
                     </div>
 
                     <button class="btn" onclick="setApiKey()">🚀 Start using Contact Book</button>
@@ -39,6 +40,12 @@
                             <button class="btn btn-secondary" onclick="refreshContacts()">🔁 Refresh</button>
                             <button class="btn btn-success" onclick="showAddContacts()">➕ Add Contact</button>
                         </div>
+                    </div>
+                    
+                    <!-- Search bar -->
+                    <div class="search-container" style="margin-bottom: 20px;">
+                        <input type="text" id="searchInput" placeholder="Search contacts..." 
+                               onkeyup="searchContacts()" class="search-input">
                     </div>
 
                     <div id="contactsList">
